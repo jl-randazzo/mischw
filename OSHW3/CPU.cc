@@ -298,11 +298,11 @@ void scheduler(int signum)
 	WRITES("---- entering scheduler\n");
 	assert(signum == SIGALRM);
 	sys_time++;
+	bool found = 0;
 	
 	if(running->state != TERMINATED) 
 	{
 		running->interrupts++;
-		assert(kill(running->pid, SIGINT) == 0);
 	}
 
 	for(int i = 1; i <= processes.size(); i++)
@@ -319,11 +319,18 @@ void scheduler(int signum)
 				execl(running->name, running->name, nullptr);
 			}
 			running->pid = child;
+			running->state = RUNNING;
+			found = 1;
 		}
-			
-	}
-	//running = idle;
+		else if(running->state == READY)
+		{
+			found = 1;	
+		}
 
+		if(found) break;
+	}
+
+	if(found == 0) running = idle;
 	WRITES("continuing");
 	WRITEI(running->pid);
 	WRITES("\n");
@@ -367,7 +374,8 @@ void process_done(int signum)
 			WRITES("process exited: ");
 			WRITEI(cpid);
 			WRITES("\n");
-		running->state = TERMINATED;
+			running->state = TERMINATED;
+			running = idle;
 		}
 	}
 
@@ -425,14 +433,8 @@ void create_idle()
 
 int main(int argc, char **argv)
 {
-	boot();
-
-	create_idle();
-	running = idle;
-	cout << running;
-	PCB* currentBlock;
-
 	//initialize PCBs	
+	PCB* currentBlock;
 	for(int i = 1; i <= argc; i++)
 	{
 		currentBlock = new(PCB);
@@ -444,6 +446,13 @@ int main(int argc, char **argv)
 		processes.push_back(currentBlock);
 		printf("pushedback\n");
 	}
+	
+	boot();
+
+	create_idle();
+	running = idle;
+	cout << running;
+
 
 	// we keep this process around so that the children don't die and
 	// to keep the IRQs in place.
