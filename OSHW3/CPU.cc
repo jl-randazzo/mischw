@@ -1,3 +1,4 @@
+#include <cstring>
 #include <iostream>
 #include <list>
 #include <iterator>
@@ -89,7 +90,7 @@ Add the following functionality.
    c) Restart the idle process to use the rest of the time slice.
 */
 
-#define NUM_SECONDS 5
+#define NUM_SECONDS 20
 #define EVER ;;
 
 #define assertsyscall(x, y) if(!((x) y)){int err = errno; \
@@ -405,6 +406,20 @@ int main(int argc, char **argv)
     create_idle();
     running = idle;
     cout << running;
+	PCB* currentBlock;
+
+	//initialize PCBs	
+	for(int i = 1; i <= argc; i++)
+	{
+		currentBlock = new(PCB);
+		currentBlock->state = NEW;
+		currentBlock->name = argv[i];
+		currentBlock->ppid = getpid();
+		currentBlock->interrupts = 0;
+		currentBlock->switches = 0;
+		processes.push_back(currentBlock);
+		printf("pushedback\n");
+	}
 
     // we keep this process around so that the children don't die and
     // to keep the IRQs in place.
