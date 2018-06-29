@@ -5,7 +5,7 @@
 int main()
 {
 	long sum = 1;
-	for(long i = 2999999999; i > 0; i--)
+	for(long i = 1299999999; i > 0; i--)
 	{
 		sum = sum + 1;
 	}

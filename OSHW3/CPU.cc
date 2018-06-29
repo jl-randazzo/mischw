@@ -135,6 +135,7 @@ struct PCB
 
 PCB *running;
 PCB *idle;
+PCB *previous;
 
 // http://www.cplusplus.com/reference/list/list/
 list<PCB *> new_list;
@@ -295,10 +296,13 @@ struct sigaction *create_handler(int signum, void(*handler)(int))
 
 void scheduler(int signum)
 {
+	// A couple of ideas here were inspired by Dr. Beaty's discussion of his old code
+
 	WRITES("---- entering scheduler\n");
 	assert(signum == SIGALRM);
 	sys_time++;
 	bool found = 0;
+	previous = running;
 	
 	if(running->state != TERMINATED) 
 	{
@@ -321,19 +325,24 @@ void scheduler(int signum)
 			running->pid = child;
 			running->state = RUNNING;
 			found = 1;
+			WRITES("creating ");
+			WRITEI(running->pid);
+			WRITES("\n");
+			running->switches++;
 		}
 		else if(running->state == READY)
 		{
 			found = 1;	
+			WRITES("continuing");
+			WRITEI(running->pid);
+			WRITES("\n");
+			if(previous != running) running->switches++;
 		}
 
 		if(found) break;
 	}
 
 	if(found == 0) running = idle;
-	WRITES("continuing");
-	WRITEI(running->pid);
-	WRITES("\n");
 
 	running->state = RUNNING;
 	if(kill(running->pid, SIGCONT) == -1)
@@ -350,7 +359,8 @@ void process_done(int signum)
 {
 	assert(signum == SIGCHLD);
 	WRITES("---- entering process_done\n");
-
+	cout << endl;
+	
 	// might have multiple children done.
 	for(EVER)
 	{
@@ -374,11 +384,14 @@ void process_done(int signum)
 			WRITES("process exited: ");
 			WRITEI(cpid);
 			WRITES("\n");
+			cout << running;
+			cout << "Process completed in " << sys_time << " seconds." << endl;
 			running->state = TERMINATED;
 			running = idle;
 		}
 	}
 
+	cout << endl;
 	WRITES("---- leaving process_done\n");
 }
 
@@ -435,7 +448,8 @@ int main(int argc, char **argv)
 {
 	//initialize PCBs	
 	PCB* currentBlock;
-	for(int i = 1; i <= argc; i++)
+
+	for(int i = 1; i < argc; i++)
 	{
 		currentBlock = new(PCB);
 		currentBlock->state = NEW;
@@ -444,13 +458,13 @@ int main(int argc, char **argv)
 		currentBlock->interrupts = 0;
 		currentBlock->switches = 0;
 		processes.push_back(currentBlock);
-		printf("pushedback\n");
 	}
 	
 	boot();
 
 	create_idle();
 	running = idle;
+	previous = idle;
 	cout << running;
 
 
