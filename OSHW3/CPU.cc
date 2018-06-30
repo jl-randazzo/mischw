@@ -328,7 +328,6 @@ void scheduler(int signum)
 			WRITES("creating ");
 			WRITEI(running->pid);
 			WRITES("\n");
-			running->switches++;
 		}
 		else if(running->state == READY)
 		{
