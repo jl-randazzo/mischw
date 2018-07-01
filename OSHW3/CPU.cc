@@ -301,7 +301,7 @@ void scheduler(int signum)
 	WRITES("---- entering scheduler\n");
 	assert(signum == SIGALRM);
 	sys_time++;
-	bool found = 0;
+	bool found = false;
 	previous = running;
 	
 	if(running->state != TERMINATED) 
@@ -324,14 +324,14 @@ void scheduler(int signum)
 			}
 			running->pid = child;
 			running->state = RUNNING;
-			found = 1;
+			found = true;
 			WRITES("creating ");
 			WRITEI(running->pid);
 			WRITES("\n");
 		}
 		else if(running->state == READY)
 		{
-			found = 1;	
+			found = true;	
 			WRITES("continuing");
 			WRITEI(running->pid);
 			WRITES("\n");
@@ -341,7 +341,7 @@ void scheduler(int signum)
 		if(found) break;
 	}
 
-	if(found == 0) running = idle;
+	if(!found) running = idle;
 
 	running->state = RUNNING;
 	if(kill(running->pid, SIGCONT) == -1)
@@ -406,7 +406,6 @@ void boot()
 	ISV[SIGCHLD] = process_done;
 	struct sigaction *alarm = create_handler(SIGALRM, ISR);
 	struct sigaction *child = create_handler(SIGCHLD, ISR);
-
 	// start up clock interrupt
 	int ret;
 	if((ret = fork()) == 0)
@@ -417,9 +416,12 @@ void boot()
 		delete(alarm);
 		delete(child);
 		delete(idle);
+		sleep(1);
 		kill(0, SIGTERM);
 	}
-
+	
+	delete(alarm);
+	delete(child);
 	if(ret < 0)
 	{
 		perror("fork");
