@@ -324,6 +324,7 @@ void scheduler(int signum)
 			}
 			running->pid = child;
 			running->state = RUNNING;
+			running->started = sys_time;
 			found = true;
 			WRITES("creating ");
 			WRITEI(running->pid);
@@ -384,7 +385,7 @@ void process_done(int signum)
 			WRITEI(cpid);
 			WRITES("\n");
 			cout << running;
-			cout << "Process completed in " << sys_time << " seconds." << endl;
+			cout << "Process completed in " <<  sys_time - running->started << " seconds." << endl;
 			running->state = TERMINATED;
 			running = idle;
 		}
