@@ -1,8 +1,9 @@
+#include <cassert>
 #include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <memory>
+#include <cstdio>
+#include <cstdlib>
 #include <unistd.h>
-#include <assert.h>
 
 /*
 ** Compile and run this program, and make sure you get the 'aargh' error
@@ -22,12 +23,14 @@ pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 void *foo (void *bar)
 {
-	pthread_t *me = new pthread_t(pthread_self());
+	auto *me = new pthread_t(pthread_self());
+	//std::unique_ptr<pthread_t> threadPtr(me);
+
 	printf("in a foo thread, ID %ld\n", *me); 
 	
 	assert(pthread_mutex_lock(&lock) == 0);
 	
-	for (i = 0; i < *((int *) bar); i++)
+	for (i = 0; i < *(static_cast<int *>(bar)); i++)
 	{
 		int tmp = i;
 
@@ -47,7 +50,7 @@ int main(int argc, char **argv)
 	pthread_t threads[NUM_THREADS];
 	for (int i = 0; i < NUM_THREADS; i++)
 	{
-		if (pthread_create(&threads[i], NULL, foo, (void *) &iterations))
+		if (pthread_create(&threads[i], NULL, foo, static_cast<void *>(&iterations)) != 0)
 		{
 			perror ("pthread_create");
 			return (1);
@@ -57,13 +60,13 @@ int main(int argc, char **argv)
 	for (int i = 0; i < NUM_THREADS; i++)
 	{
 		void *status;
-		if (pthread_join (threads[i], &status))
+		if (pthread_join (threads[i], &status) != 0)
 		{
 			perror ("pthread_join");
 			return (1);
 		}
-		printf("joined a foo thread, number %ld\n", *((pthread_t *) status));
-		delete((pthread_t*)status);
+		printf("joined a foo thread, number %ld\n", *(static_cast<pthread_t *>(status)));
+		delete(static_cast<pthread_t *>(status));
 	}
 
 	return (0);
